@@ -14,5 +14,5 @@ Data were collected and compiled by the ICES Working Group on North Atlantic Sal
 Otherwise, raw data are available in WGNAS Report. (http://www.ices.dk/community/groups/Pages/WGNAS.aspx).
 Finally, if you want to run the model, please be aware that 4 days are needed.
 
-3. Run
+3. Runjags.R : Run the data, the model and save MCMC
   

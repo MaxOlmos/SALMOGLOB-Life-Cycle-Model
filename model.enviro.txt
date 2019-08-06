@@ -1,0 +1,132 @@
+
+### For the present analysis (Olmos et al 20XX currently submitted to Global Change Biology)
+### we keep the original covariation model for the proportion of fish maturing as 1SW as defined by Olmos et al. (2019), 
+### with temporal variations of this parameters modeled as a multivariate random walk in the logit scale. 
+### Random variations are drawn from multivariate Normal distribution with a 13×13 variance-covariance matrix.  
+### The model for temporal variation in post-smolt marine survival, which is the focus of this paper, is modified from Olmos et al. (2019), and temporal variation is modelled through an explicit decomposition of terms associated with the various spatial scales, as detailed hereafter, 
+### Please see below the corresponding code
+
+
+## Post-smolts survival = theta3 : N3.tot[t] --> N4[t+1]
+## ---------------------------------------------------------------------------------
+## ---------------------------------------------------------------------------------
+
+## Years in 1:4
+##----------------
+		
+	for (r in 1:N)
+	{
+	sigma.theta3.init[r] ~ dunif(0,1)
+	tau.theta3.init[r] <- 1/pow(sigma.theta3.init[r],2)
+	
+	# First year
+	logit.theta3[1,r] ~ dnorm(0,1)
+	
+	# Time series as a random walk 
+	for (t in 1:3)
+	{
+	logit.theta3[t+1, r] ~ dnorm(logit.theta3[t,r], tau.theta3.init[r])
+	}
+	}
+	
+## Years in 5:n
+##----------------
+
+# intercept
+#---------------
+sigma.beta.theta3 ~ dunif(0,5)
+tau.beta.theta3 <- 1/( sigma.beta.theta3*sigma.beta.theta3)
+mu.theta3 ~ dnorm(0,0.1)
+
+for ( r in 1:N)
+{
+beta.theta3[r] ~dnorm(mu.theta3,tau.beta.theta3)
+}
+ 
+ 
+# Specific term
+#---------------
+for (r in 1:N)
+{
+sigma.epsilon.theta3[r] ~ dunif(0,5)
+tau.epsilon.theta3[r]<-1/(sigma.epsilon.theta3[r]*sigma.epsilon.theta3[r])
+
+for ( t in 1:(n.fit-2))
+{
+epsilon.theta3[t,r] ~ dnorm(0,tau.epsilon.theta3[r])
+}
+} 
+
+# term commun CSG
+#---------------
+for (i in 1:2)
+{  
+sigma.alpha.theta3[i] ~ dunif(0,5)
+tau.alpha.theta3[i] <-1/(sigma.alpha.theta3[i]*sigma.alpha.theta3[i])
+}
+for (i in 1:2)
+{
+for (t in 1:(n.fit-2))
+{
+alpha.theta3[t,i] ~ dnorm(0,tau.alpha.theta3[i])
+}
+}
+
+# term commun
+#---------------
+sigma.delta.theta3 ~ dunif(0,5)
+tau.delta.theta3 <- 1/(sigma.delta.theta3*sigma.delta.theta3)
+
+for (t in 1:(n.fit-2)) 
+{
+delta.theta3[t] ~ dnorm(0,tau.delta.theta3)
+}
+ 
+# Survival
+#--------------------------
+
+# Regression coefficient
+for (i in 1:3)
+{
+gamma.theta3[i] ~dunif(-6,6)
+}
+# Environmental covariates : X
+# Here the code corresponds to covariates defined in the common space time domains - X.NA.com in North America- and - X.SE.com in Southern Europe
+# Different models are defined for each covariate tested : PP, SST, NAOI, AMO
+
+# k <- 1 for SUs from North America
+for ( r in 1:6)
+{
+k[r]<-1
+}
+
+# k< - 2 for SUs from Southern Europe
+for ( r in 7:N)
+{
+k[r]<-2
+}
+
+## Survival as a sum of random term definied at different scales 
+
+for (t in 1:(n.fit-2))
+{
+for (r in 1:N.NA)
+{
+logit.theta3[(t+4),r] <-  beta.theta3[r] + delta.theta3[t] + alpha.theta3[t,k[r]]+ epsilon.theta3[t,r] + (gamma.theta3[k[r]]*X.NA.com[t])
+}
+
+for (r in N.SE:(N-1))
+{
+logit.theta3[(t+4),r] <-  beta.theta3[r] + delta.theta3[t] + alpha.theta3[t,k[r]] + epsilon.theta3[t,r] + (gamma.theta3[k[r]]*X.SE.com[t])
+}
+
+logit.theta3[(t+4),N] <-  beta.theta3[N] + delta.theta3[t] + alpha.CSG.theta3[t,k[N]]+ epsilon.theta3[t,N] + (gamma.theta3[3]*X.SWIC[t])
+}
+
+for(r in 1:N)
+{
+for (t in 1:(n-2))
+{
+logit(theta3[t,r]) <- logit.theta3[t,r]
+}
+}
